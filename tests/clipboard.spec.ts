@@ -23,7 +23,7 @@ test.describe('PlaywrightClipboard', () => {
   test('should perform basic copy/paste operations', async ({ page }): Promise<void> => {
     const clipboard = new PlaywrightClipboard(page);
     const initialText = 'Hello World';
-    
+
     // Set initial text in source
     await page.fill('#source', initialText);
     expect(await page.inputValue('#source')).toBe(initialText);
