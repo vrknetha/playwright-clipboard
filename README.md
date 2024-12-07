@@ -22,6 +22,52 @@ npm install --save-dev playwright-clipboard
 
 ## Examples
 
+### Using with Fixtures
+
+```typescript
+import { test as base, expect } from '@playwright/test';
+import { PlaywrightClipboard } from 'playwright-clipboard';
+
+// Extend the base test fixture with clipboard
+interface ClipboardFixtures {
+  clipboard: PlaywrightClipboard;
+}
+
+const test = base.extend<ClipboardFixtures>({
+  clipboard: async ({ page }, use) => {
+    const clipboard = new PlaywrightClipboard(page);
+    await use(clipboard);
+  },
+});
+
+// Now use clipboard in your tests
+test('using clipboard fixture', async ({ page, clipboard }) => {
+  await page.goto('http://localhost:8080');
+  
+  // Use clipboard methods directly
+  await clipboard.copy('#source');
+  await clipboard.paste('#target');
+  
+  const result = await page.inputValue('#target');
+  expect(result).toBe('Hello World');
+});
+
+// Test rich text with browser context
+test('rich text with browser context', async ({ page, clipboard, browserName }) => {
+  await page.goto('http://localhost:8080');
+  
+  await clipboard.copyRichText('#richSource');
+  await clipboard.pasteRichText('#richTarget');
+  
+  if (browserName === 'webkit') {
+    const text = await page.$eval('#richTarget', el => el.textContent?.trim() || '');
+    expect(text).toBe('This is bold text');
+  } else {
+    const html = await page.$eval('#richTarget', el => el.innerHTML.trim());
+    expect(html).toContain('<b>bold</b>');
+  }
+});
+
 ### Basic Operations
 
 ```typescript
