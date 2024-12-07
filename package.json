@@ -24,7 +24,7 @@
     "e2e",
     "typescript"
   ],
-  "author": "",
+  "author": "vrknetha",
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^9.16.0",
@@ -52,10 +52,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/playwright-clipboard.git"
+    "url": "git+https://github.com/vrknetha/playwright-clipboard.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/playwright-clipboard/issues"
+    "url": "https://github.com/vrknetha/playwright-clipboard/issues"
   },
-  "homepage": "https://github.com/yourusername/playwright-clipboard#readme"
+  "homepage": "https://github.com/vrknetha/playwright-clipboard#readme"
 }
