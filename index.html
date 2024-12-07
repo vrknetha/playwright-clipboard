@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clipboard Operations Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: grid;
+            gap: 20px;
+        }
+        .test-section {
+            background-color: white;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #666;
+            margin-top: 0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        textarea, input {
+            width: 100%;
+            margin: 10px 0;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        textarea:focus, input:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+        .rich-editor {
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            min-height: 100px;
+            margin: 10px 0;
+            background: white;
+        }
+        .rich-editor:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        .toolbar {
+            margin-bottom: 10px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+        .toolbar button {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        [contenteditable=true]:empty:before {
+            content: attr(placeholder);
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Playwright Clipboard Test Page</h1>
+
+        <!-- Basic Operations -->
+        <div class="test-section">
+            <h2>Basic Operations</h2>
+            <input type="text" id="source" placeholder="Source text" value="Hello World">
+            <textarea id="target" placeholder="Target text (paste here)" rows="4"></textarea>
+            <div>
+                <button onclick="copyText()">Copy</button>
+                <button onclick="pasteText()">Paste</button>
+                <button onclick="cutText()">Cut</button>
+            </div>
+            <div id="basicStatus" class="status"></div>
+        </div>
+
+        <!-- Rich Text Operations -->
+        <div class="test-section">
+            <h2>Rich Text Operations</h2>
+            <div class="toolbar">
+                <button onclick="formatText('bold')"><b>B</b></button>
+                <button onclick="formatText('italic')"><i>I</i></button>
+                <button onclick="formatText('underline')"><u>U</u></button>
+                <button onclick="formatText('strikeThrough')"><s>S</s></button>
+            </div>
+            <div id="richSource" class="rich-editor" contenteditable="true" placeholder="Type or paste rich text here">
+                This is <b>bold</b>, <i>italic</i>, and <u>underlined</u> text.
+            </div>
+            <div id="richTarget" class="rich-editor" contenteditable="true" placeholder="Rich text will be pasted here"></div>
+            <div>
+                <button onclick="copyRichText()">Copy Rich Text</button>
+                <button onclick="pasteRichText()">Paste Rich Text</button>
+                <button onclick="cutRichText()">Cut Rich Text</button>
+            </div>
+            <div id="richStatus" class="status"></div>
+        </div>
+
+        <!-- Word Operations -->
+        <div class="test-section">
+            <h2>Word Operations</h2>
+            <textarea id="editor" rows="4">The quick brown fox jumps over the lazy dog</textarea>
+            <div>
+                <button onclick="copyBetweenWords(2, 3)">Copy 'brown fox'</button>
+                <button onclick="pasteAfterWord(1)">Paste after 'quick'</button>
+                <button onclick="pasteBeforeWord(0)">Paste at start</button>
+                <button onclick="replaceWord(4)">Replace 'jumps'</button>
+            </div>
+            <div id="wordStatus" class="status"></div>
+        </div>
+
+        <!-- Selection Operations -->
+        <div class="test-section">
+            <h2>Selection Operations</h2>
+            <textarea id="text" rows="4">Select this text for testing selection operations</textarea>
+            <div>
+                <button onclick="selectAll()">Select All</button>
+                <button onclick="selectRange(7, 11)">Select 'this'</button>
+                <button onclick="selectWordRange(1, 3)">Select 'this text'</button>
+            </div>
+            <div class="result" id="selectionResult"></div>
+            <div id="selectionStatus" class="status"></div>
+        </div>
+    </div>
+
+    <script>
+        function showStatus(elementId, message, isError = false) {
+            const status = document.getElementById(elementId);
+            status.textContent = message;
+            status.className = 'status ' + (isError ? 'error' : 'success');
+            setTimeout(() => {
+                status.className = 'status';
+            }, 3000);
+        }
+
+        // Basic Operations
+        async function copyText() {
+            try {
+                const source = document.getElementById('source');
+                source.select();
+                await navigator.clipboard.writeText(source.value);
+                showStatus('basicStatus', 'Text copied successfully!');
+            } catch (error) {
+                showStatus('basicStatus', 'Failed to copy text: ' + error.message, true);
+            }
+        }
+
+        async function pasteText() {
+            try {
+                const target = document.getElementById('target');
+                const text = await navigator.clipboard.readText();
+                target.value = text;
+                showStatus('basicStatus', 'Text pasted successfully!');
+            } catch (error) {
+                showStatus('basicStatus', 'Failed to paste text: ' + error.message, true);
+            }
+        }
+
+        async function cutText() {
+            try {
+                const source = document.getElementById('source');
+                await navigator.clipboard.writeText(source.value);
+                source.value = '';
+                showStatus('basicStatus', 'Text cut successfully!');
+            } catch (error) {
+                showStatus('basicStatus', 'Failed to cut text: ' + error.message, true);
+            }
+        }
+
+        // Rich Text Operations
+        function formatText(command) {
+            document.execCommand(command, false, null);
+            document.getElementById('richSource').focus();
+        }
+
+        async function copyRichText() {
+            try {
+                const source = document.getElementById('richSource');
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(source);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                await document.execCommand('copy');
+                showStatus('richStatus', 'Rich text copied successfully!');
+            } catch (error) {
+                showStatus('richStatus', 'Failed to copy rich text: ' + error.message, true);
+            }
+        }
+
+        async function pasteRichText() {
+            try {
+                const target = document.getElementById('richTarget');
+                target.focus();
+                await document.execCommand('paste');
+                showStatus('richStatus', 'Rich text pasted successfully!');
+            } catch (error) {
+                showStatus('richStatus', 'Failed to paste rich text: ' + error.message, true);
+            }
+        }
+
+        async function cutRichText() {
+            try {
+                const source = document.getElementById('richSource');
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(source);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                await document.execCommand('cut');
+                showStatus('richStatus', 'Rich text cut successfully!');
+            } catch (error) {
+                showStatus('richStatus', 'Failed to cut rich text: ' + error.message, true);
+            }
+        }
+
+        // Word Operations
+        function getWordBoundaries(element, wordIndex) {
+            const text = element.value;
+            const words = text.split(/\s+/);
+            let currentPosition = 0;
+            
+            for (let i = 0; i < wordIndex; i++) {
+                currentPosition += words[i].length + 1;
+            }
+            
+            return {
+                start: currentPosition,
+                end: currentPosition + words[wordIndex].length
+            };
+        }
+
+        async function copyBetweenWords(startWordIndex, endWordIndex) {
+            try {
+                const editor = document.getElementById('editor');
+                const startBoundaries = getWordBoundaries(editor, startWordIndex);
+                const endBoundaries = getWordBoundaries(editor, endWordIndex);
+                
+                editor.setSelectionRange(startBoundaries.start, endBoundaries.end);
+                await navigator.clipboard.writeText(editor.value.substring(startBoundaries.start, endBoundaries.end));
+                showStatus('wordStatus', 'Words copied successfully!');
+            } catch (error) {
+                showStatus('wordStatus', 'Failed to copy words: ' + error.message, true);
+            }
+        }
+
+        async function pasteAfterWord(wordIndex) {
+            try {
+                const editor = document.getElementById('editor');
+                const boundaries = getWordBoundaries(editor, wordIndex);
+                const text = await navigator.clipboard.readText();
+                
+                const before = editor.value.substring(0, boundaries.end);
+                const after = editor.value.substring(boundaries.end);
+                editor.value = before + ' ' + text + after;
+                showStatus('wordStatus', 'Text pasted successfully!');
+            } catch (error) {
+                showStatus('wordStatus', 'Failed to paste text: ' + error.message, true);
+            }
+        }
+
+        async function pasteBeforeWord(wordIndex) {
+            try {
+                const editor = document.getElementById('editor');
+                const boundaries = getWordBoundaries(editor, wordIndex);
+                const text = await navigator.clipboard.readText();
+                
+                const before = editor.value.substring(0, boundaries.start);
+                const after = editor.value.substring(boundaries.start);
+                editor.value = before + text + ' ' + after;
+                showStatus('wordStatus', 'Text pasted successfully!');
+            } catch (error) {
+                showStatus('wordStatus', 'Failed to paste text: ' + error.message, true);
+            }
+        }
+
+        async function replaceWord(wordIndex) {
+            try {
+                const editor = document.getElementById('editor');
+                const boundaries = getWordBoundaries(editor, wordIndex);
+                const text = await navigator.clipboard.readText();
+                
+                const before = editor.value.substring(0, boundaries.start);
+                const after = editor.value.substring(boundaries.end);
+                editor.value = before + text + after;
+                showStatus('wordStatus', 'Word replaced successfully!');
+            } catch (error) {
+                showStatus('wordStatus', 'Failed to replace word: ' + error.message, true);
+            }
+        }
+
+        // Selection Operations
+        function selectAll() {
+            try {
+                const text = document.getElementById('text');
+                text.select();
+                updateSelectionResult();
+                showStatus('selectionStatus', 'All text selected!');
+            } catch (error) {
+                showStatus('selectionStatus', 'Failed to select text: ' + error.message, true);
+            }
+        }
+
+        function selectRange(start, end) {
+            try {
+                const text = document.getElementById('text');
+                text.setSelectionRange(start, end);
+                text.focus();
+                updateSelectionResult();
+                showStatus('selectionStatus', 'Range selected!');
+            } catch (error) {
+                showStatus('selectionStatus', 'Failed to select range: ' + error.message, true);
+            }
+        }
+
+        function selectWordRange(startIndex, endIndex) {
+            try {
+                const text = document.getElementById('text');
+                const startBoundaries = getWordBoundaries(text, startIndex);
+                const endBoundaries = getWordBoundaries(text, endIndex);
+                
+                text.setSelectionRange(startBoundaries.start, endBoundaries.end);
+                text.focus();
+                updateSelectionResult();
+                showStatus('selectionStatus', 'Word range selected!');
+            } catch (error) {
+                showStatus('selectionStatus', 'Failed to select word range: ' + error.message, true);
+            }
+        }
+
+        function updateSelectionResult() {
+            const text = document.getElementById('text');
+            const result = document.getElementById('selectionResult');
+            result.textContent = `Selected text: "${text.value.substring(text.selectionStart, text.selectionEnd)}"`;
+        }
+    </script>
+</body>
+</html> 
