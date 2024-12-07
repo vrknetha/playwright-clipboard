@@ -15,12 +15,17 @@ export default defineConfig({
     command: 'npm run serve',
     url: 'http://localhost:8080',
     reuseExistingServer: !process.env.CI,
-    timeout: 5000,
+    timeout: 120000,
+    stdout: 'pipe',
+    stderr: 'pipe',
   },
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        permissions: ['clipboard-read', 'clipboard-write'],
+      },
     },
     {
       name: 'firefox',
