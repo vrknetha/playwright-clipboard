@@ -10,11 +10,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.40.1-jammy
+      image: mcr.microsoft.com/playwright:v1.49.0-jammy
       options: --ipc=host
     env:
       HOME: /root
-        
+
     steps:
       - uses: actions/checkout@v4
 
