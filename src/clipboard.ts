@@ -8,7 +8,7 @@ import {
   pasteRichText,
   cutRichText,
   getClipboardContent,
-  setClipboardContent
+  setClipboardContent,
 } from './utils';
 
 export class PlaywrightClipboard {
@@ -253,4 +253,4 @@ export class PlaywrightClipboard {
       throw new Error(ClipboardError.WORD_BOUNDARY_ERROR);
     }
   }
-} 
+}

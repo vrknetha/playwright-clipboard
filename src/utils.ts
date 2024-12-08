@@ -167,19 +167,19 @@ export async function getClipboardContent(page: Page): Promise<string> {
         temp.style.opacity = '0';
         document.body.appendChild(temp);
       });
-      
+
       const modifierKey = process.platform === 'darwin' ? 'Meta' : 'Control';
       await page.focus(tempSelector);
       await page.keyboard.press(`${modifierKey}+V`);
       await page.waitForTimeout(100);
-      
+
       const text = await page.inputValue(tempSelector);
-      
+
       await page.evaluate(() => {
         const temp = document.querySelector('#__clipboard_temp__');
         if (temp) temp.remove();
       });
-      
+
       return text;
     }
   } catch (error) {
@@ -205,14 +205,14 @@ export async function setClipboardContent(page: Page, text: string): Promise<voi
         temp.value = text;
         document.body.appendChild(temp);
       }, text);
-      
+
       const modifierKey = process.platform === 'darwin' ? 'Meta' : 'Control';
       await page.focus(tempSelector);
       await page.keyboard.press(`${modifierKey}+A`);
       await page.waitForTimeout(100);
       await page.keyboard.press(`${modifierKey}+C`);
       await page.waitForTimeout(100);
-      
+
       await page.evaluate(() => {
         const temp = document.querySelector('#__clipboard_temp__');
         if (temp) temp.remove();
@@ -221,4 +221,4 @@ export async function setClipboardContent(page: Page, text: string): Promise<voi
   } catch (error) {
     throw new Error(ClipboardError.CLIPBOARD_ACCESS_DENIED);
   }
-} 
+}
