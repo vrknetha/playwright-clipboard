@@ -55,7 +55,6 @@ export default defineConfig({
       use: {
         ...devices['Desktop Safari'],
         viewport: { width: 1280, height: 720 },
-        permissions: ['clipboard-read', 'clipboard-write'],
       },
     },
   ],

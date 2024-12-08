@@ -12,12 +12,68 @@ function normalizeHtml(html: string): string {
 
 test.describe('PlaywrightClipboard', () => {
   test.beforeEach(async ({ context, browserName, page }) => {
-    // Grant clipboard permissions based on browser
+    // Only Chromium supports clipboard permissions
     if (browserName === 'chromium') {
       await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     }
+
     // Navigate to the test page
     await page.goto('http://localhost:8080');
+    
+    // For Firefox and WebKit, we need to ensure the page has focus
+    if (browserName !== 'chromium') {
+      await page.evaluate(() => {
+        window.focus();
+        document.body.focus();
+      });
+      
+      // Add a small delay to ensure focus is properly set
+      await page.waitForTimeout(100);
+    }
+  });
+
+  // Configure timeouts for clipboard operations
+  test.setTimeout(30000);
+
+  // Helper function to get the correct modifier key based on OS and browser
+  const getModifierKey = (browserName: string): string => {
+    // On macOS, use Meta (Command) key
+    if (process.platform === 'darwin') {
+      return 'Meta';
+    }
+    // On Windows/Linux, use Control key
+    return 'Control';
+  };
+
+  test.beforeEach(async ({ page, browserName }) => {
+    // For Firefox and WebKit, ensure clipboard is ready
+    if (browserName !== 'chromium') {
+      await page.evaluate(() => {
+        // Create a temporary contentEditable element
+        const editable = document.createElement('div');
+        editable.contentEditable = 'true';
+        editable.style.position = 'fixed';
+        editable.style.top = '0';
+        editable.style.left = '0';
+        editable.style.opacity = '0';
+        editable.style.whiteSpace = 'pre-wrap';
+        editable.style.zIndex = '9999';
+        document.body.appendChild(editable);
+        editable.focus();
+
+        // Try a test copy operation
+        editable.textContent = 'test';
+        const range = document.createRange();
+        range.selectNodeContents(editable);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        document.execCommand('copy');
+
+        // Clean up
+        document.body.removeChild(editable);
+      });
+    }
   });
 
   test('should perform basic copy/paste operations', async ({ page }): Promise<void> => {
