@@ -1,6 +1,18 @@
 # Playwright Clipboard
 
-A comprehensive solution for testing clipboard operations in web applications using Playwright. This package provides both standard clipboard operations and precise word-level text manipulation capabilities.
+A comprehensive solution for testing clipboard operations in web applications using Playwright. This package provides both standard clipboard operations and precise word-level text manipulation capabilities across all major browsers (Chromium, Firefox, and WebKit).
+
+## Features
+
+- ✨ Cross-browser clipboard operations (copy, paste, cut)
+- 📝 Rich text operations with HTML preservation
+- 🎯 Text selection operations with character and word-level control
+- 🔍 Word-level operations for precise text manipulation
+- 🔄 Clipboard content management with direct access
+- 🌐 Cross-browser compatibility (Chromium, Firefox, WebKit)
+- 📦 TypeScript support with full type definitions
+- 🛡️ Comprehensive error handling
+- 🔄 Fallback mechanisms for browser-specific limitations
 
 ## Installation
 
@@ -8,31 +20,77 @@ A comprehensive solution for testing clipboard operations in web applications us
 npm install --save-dev playwright-clipboard
 ```
 
-## Features
+## Configuration
 
-- Basic clipboard operations (copy, paste, cut)
-- Rich text operations with HTML preservation
-- Text selection operations with character and word-level control
-- Word-level operations for precise text manipulation
-- Clipboard content management with direct access
-- Cross-browser compatibility (Chromium, Firefox, WebKit)
-- TypeScript support with full type definitions
-- Comprehensive error handling
-- Fallback mechanisms for browser-specific limitations
+### Playwright Config
 
-## Examples
-
-### Using with Fixtures
+Create or update your `playwright.config.ts`:
 
 ```typescript
-import { test as base, expect } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests',
+  /* Run tests sequentially for clipboard operations */
+  fullyParallel: false,
+  use: {
+    /* Base URL for your test server */
+    baseURL: 'http://localhost:8080',
+    /* Increase timeouts for clipboard operations */
+    actionTimeout: 30000,
+  },
+  projects: [
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        /* Enable clipboard permissions for Chromium */
+        permissions: ['clipboard-read', 'clipboard-write'],
+      },
+    },
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+        /* Firefox-specific preferences for clipboard */
+        launchOptions: {
+          firefoxUserPrefs: {
+            'dom.events.testing.asyncClipboard': true,
+            'dom.events.asyncClipboard.readText': true,
+            'dom.events.asyncClipboard.clipboardItem': true,
+            'dom.events.asyncClipboard.writeText': true,
+            'permissions.default.clipboard-read': 1,
+            'permissions.default.clipboard-write': 1,
+          },
+        },
+      },
+    },
+    {
+      name: 'webkit',
+      use: {
+        ...devices['Desktop Safari'],
+      },
+    },
+  ],
+});
+```
+
+## Usage
+
+### Test Fixtures
+
+Create reusable clipboard fixtures for your tests:
+
+```typescript
+import { test as base } from '@playwright/test';
 import { PlaywrightClipboard } from 'playwright-clipboard';
 
-// Extend the base test fixture with clipboard
+// Define clipboard fixture type
 interface ClipboardFixtures {
   clipboard: PlaywrightClipboard;
 }
 
+// Extend base test with clipboard fixture
 const test = base.extend<ClipboardFixtures>({
   clipboard: async ({ page }, use) => {
     const clipboard = new PlaywrightClipboard(page);
@@ -40,163 +98,107 @@ const test = base.extend<ClipboardFixtures>({
   },
 });
 
-// Now use clipboard in your tests
-test('using clipboard fixture', async ({ page, clipboard }) => {
-  await page.goto('http://localhost:8080');
-  
-  // Use clipboard methods directly
-  await clipboard.copy('#source');
-  await clipboard.paste('#target');
-  
-  const result = await page.inputValue('#target');
-  expect(result).toBe('Hello World');
-});
-
-// Test rich text with browser context
-test('rich text with browser context', async ({ page, clipboard, browserName }) => {
-  await page.goto('http://localhost:8080');
-  
-  await clipboard.copyRichText('#richSource');
-  await clipboard.pasteRichText('#richTarget');
-  
-  if (browserName === 'webkit') {
-    const text = await page.$eval('#richTarget', el => el.textContent?.trim() || '');
-    expect(text).toBe('This is bold text');
-  } else {
-    const html = await page.$eval('#richTarget', el => el.innerHTML.trim());
-    expect(html).toContain('<b>bold</b>');
-  }
-});
+// Export for use in test files
+export { test };
+export { expect } from '@playwright/test';
+```
 
 ### Basic Operations
 
 ```typescript
-import { test, expect } from '@playwright/test';
-import { PlaywrightClipboard } from 'playwright-clipboard';
+import { test, expect } from './fixtures';
 
-test('basic copy/paste operations', async ({ page }) => {
-  const clipboard = new PlaywrightClipboard(page);
-  
-  await page.goto('http://localhost:8080');
-  
-  // Copy from source input and paste to target
+test('basic clipboard operations', async ({ page, clipboard }) => {
+  // Copy text
   await clipboard.copy('#source');
+  
+  // Paste text
   await clipboard.paste('#target');
-
-  const result = await page.inputValue('#target');
-  expect(result).toBe('Hello World');
-});
-
-test('cut operations', async ({ page }) => {
-  const clipboard = new PlaywrightClipboard(page);
-  const initialText = 'Test Content';
-
-  await page.fill('#source', initialText);
+  
+  // Cut text
   await clipboard.cut('#source');
-  await clipboard.paste('#target');
-
-  // Source should be empty after cut
-  const sourceContent = await page.inputValue('#source');
-  expect(sourceContent).toBe('');
-
-  // Target should have the cut content
-  const targetContent = await page.inputValue('#target');
-  expect(targetContent).toBe(initialText);
+  
+  // Get clipboard content
+  const content = await clipboard.getClipboardContent();
+  expect(content).toBe('Expected text');
 });
 ```
 
 ### Rich Text Operations
 
 ```typescript
-test('rich text operations', async ({ page, browserName }) => {
-  const clipboard = new PlaywrightClipboard(page);
-  
-  // Copy rich text content
+test('rich text operations', async ({ clipboard }) => {
+  // Copy rich text with HTML preservation
   await clipboard.copyRichText('#richSource');
-  await clipboard.pasteRichText('#richTarget');
-
-  const result = await page.$eval('#richTarget', el => el.innerHTML.trim());
   
-  if (browserName === 'webkit') {
-    // WebKit may handle rich text differently
-    const plainText = await page.$eval('#richTarget', 
-      el => el.textContent?.trim() || '');
-    expect(plainText).toBe('This is bold text');
-  } else {
-    // Other browsers preserve HTML structure
-    expect(result).toContain('<b>bold</b>');
-  }
+  // Paste rich text maintaining formatting
+  await clipboard.pasteRichText('#richTarget');
+  
+  // Cut rich text
+  await clipboard.cutRichText('#richSource');
 });
 ```
 
 ### Text Selection
 
 ```typescript
-test('text selection', async ({ page }) => {
-  const clipboard = new PlaywrightClipboard(page);
-  const testText = 'Select this text';
-
-  await page.fill('#text', testText);
-  await clipboard.select('#text', 7, 11); // Selects "this"
+test('text selection operations', async ({ clipboard }) => {
+  // Select specific range
+  await clipboard.select('#text', 7, 11);
   
+  // Get selected text
   const selectedText = await clipboard.getSelectedText();
-  expect(selectedText).toBe('this');
+  
+  // Select all text
+  await clipboard.selectAll('#text');
+  
+  // Select word range
+  await clipboard.selectWordRange('#text', 1, 3);
 });
 ```
 
 ### Word Operations
 
 ```typescript
-test('word operations', async ({ page }) => {
-  const clipboard = new PlaywrightClipboard(page);
-  const testText = 'The quick brown fox jumps';
-
-  await page.fill('#editor', testText);
-  await clipboard.copyBetweenWords('#editor', 2, 3); // Copy "brown fox"
-  await clipboard.paste('#target');
-
-  const targetContent = await page.inputValue('#target');
-  expect(targetContent).toBe('brown fox');
+test('word-level operations', async ({ clipboard }) => {
+  // Copy specific words
+  await clipboard.copyBetweenWords('#editor', 2, 3);
+  
+  // Paste after specific word
+  await clipboard.pasteAfterWord('#editor', 1);
+  
+  // Paste before word
+  await clipboard.pasteBeforeWord('#editor', 0);
+  
+  // Replace specific word
+  await clipboard.replaceWord('#editor', 4);
 });
 ```
 
-### Special Characters and Multiline Text
+### Error Handling
 
 ```typescript
-test('special characters', async ({ page }) => {
-  const clipboard = new PlaywrightClipboard(page);
-  const testText = 'Special @#$% characters!';
+import { ClipboardError } from 'playwright-clipboard';
 
-  await page.fill('#source', testText);
-  await clipboard.copy('#source');
-  await clipboard.paste('#target');
-
-  const result = await page.inputValue('#target');
-  expect(result).toBe(testText);
-});
-
-test('multiline text', async ({ page }) => {
-  const clipboard = new PlaywrightClipboard(page);
-  const testText = 'Line 1\nLine 2\nLine 3';
-
-  await page.fill('#editor', testText);
-  await clipboard.copy('#editor');
-  await clipboard.paste('#target');
-
-  const result = await page.inputValue('#target');
-  expect(result).toBe(testText);
+test('handle clipboard errors', async ({ clipboard }) => {
+  try {
+    await clipboard.copy('#nonexistent');
+  } catch (error) {
+    if (error.message === ClipboardError.COPY_ERROR) {
+      // Handle copy error
+    }
+  }
 });
 ```
 
 ## Browser Support
 
-| Feature | Chromium | Firefox | WebKit (Safari) |
-|---------|----------|---------|-----------------|
-| Basic Operations | Native Clipboard API | Keyboard Shortcuts | Clipboard API + Fallback |
-| Rich Text | Full Support | Full Support | Full Support* |
-| Word Operations | Full Support | Full Support | Full Support |
-
-\* Uses `execCommand` fallback for some operations
+| Feature | Chromium | Firefox | WebKit |
+|---------|----------|---------|--------|
+| Basic Operations | ✅ | ✅ | ✅ |
+| Rich Text | ✅ | ✅ | ✅ |
+| Word Operations | ✅ | ✅ | ✅ |
+| Text Selection | ✅ | ✅ | ✅ |
 
 ## Technical Details
 
@@ -250,44 +252,15 @@ Options:
 - `pasteAfterWord(selector: string, wordIndex: number): Promise<void>`
 - `pasteBeforeWord(selector: string, wordIndex: number): Promise<void>`
 - `replaceWord(selector: string, wordIndex: number): Promise<void>`
-- `selectWordRange(selector: string, startIndex: number, endIndex: number): Promise<void>`
-- `getSelectedWords(): Promise<string>`
-
-#### Clipboard Management
-- `getClipboardContent(): Promise<string>` - Get current clipboard content
-- `setClipboardContent(text: string): Promise<void>` - Set clipboard content
-
-## Error Handling
-
-The package includes comprehensive error handling with specific error types:
-
-```typescript
-export enum ClipboardError {
-  COPY_ERROR = 'Copy operation failed',
-  PASTE_ERROR = 'Paste operation failed',
-  CLIPBOARD_ACCESS_DENIED = 'Cannot access clipboard',
-  SELECTION_FAILED = 'Text selection failed',
-  INVALID_WORD_INDEX = 'Invalid word index specified',
-  WORD_BOUNDARY_ERROR = 'Cannot determine word boundaries',
-  EMPTY_SELECTION = 'No text selected',
-  PASTE_POSITION_ERROR = 'Invalid paste position'
-}
-```
-
-## Requirements
-
-- Node.js >= 18.0.0
-- Playwright >= 1.40.0
-- TypeScript >= 4.5.0 (for TypeScript users)
 
 ## Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](./CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-MIT
-
-## Support
-
-For bugs and feature requests, please [open an issue](https://github.com/vrknetha/playwright-clipboard/issues). 
+MIT License - see the [LICENSE](LICENSE) file for details
