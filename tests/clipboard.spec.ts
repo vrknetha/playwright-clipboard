@@ -19,14 +19,14 @@ test.describe('PlaywrightClipboard', () => {
 
     // Navigate to the test page
     await page.goto('http://localhost:8080');
-    
+
     // For Firefox and WebKit, we need to ensure the page has focus
     if (browserName !== 'chromium') {
       await page.evaluate(() => {
         window.focus();
         document.body.focus();
       });
-      
+
       // Add a small delay to ensure focus is properly set
       await page.waitForTimeout(100);
     }
@@ -36,14 +36,6 @@ test.describe('PlaywrightClipboard', () => {
   test.setTimeout(30000);
 
   // Helper function to get the correct modifier key based on OS and browser
-  const getModifierKey = (browserName: string): string => {
-    // On macOS, use Meta (Command) key
-    if (process.platform === 'darwin') {
-      return 'Meta';
-    }
-    // On Windows/Linux, use Control key
-    return 'Control';
-  };
 
   test.beforeEach(async ({ page, browserName }) => {
     // For Firefox and WebKit, ensure clipboard is ready
