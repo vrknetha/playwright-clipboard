@@ -5,13 +5,12 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc", 
     "test": "playwright test",
     "test:report": "playwright show-report",
-    "test:docker": "docker build -t playwright-clipboard-tests . && docker run --rm playwright-clipboard-tests",
     "prepare": "npm run build",
-    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "lint:fix": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" --fix",
+    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" \"playwright.config.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" \"playwright.config.ts\" --fix",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "serve": "http-server -p 8080",
     "preversion": "npm run lint && npm test",
@@ -49,7 +48,7 @@
     "LICENSE"
   ],
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "repository": {
     "type": "git",

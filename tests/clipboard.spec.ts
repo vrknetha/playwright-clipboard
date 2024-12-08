@@ -1,26 +1,33 @@
 import { test, expect } from '@playwright/test';
 import { PlaywrightClipboard } from '../src';
 
+// Helper function to normalize HTML for comparison
+function normalizeHtml(html: string): string {
+  return html
+    .replace(/\s+/g, ' ')
+    .replace(/>\s+</g, '><')
+    .replace(/&nbsp;/g, ' ')
+    .trim();
+}
+
 test.describe('PlaywrightClipboard', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ context, browserName, page }) => {
+    // Grant clipboard permissions based on browser
+    if (browserName === 'chromium') {
+      await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    }
+    // Navigate to the test page
     await page.goto('http://localhost:8080');
-    // Clear both source and target elements
-    await page.fill('#source', '');
-    await page.fill('#target', '');
-    await page.fill('#text', '');
-    await page.fill('#editor', '');
-    await page.evaluate(() => {
-      const richSource = document.querySelector('#richSource');
-      const richTarget = document.querySelector('#richTarget');
-      if (richSource) richSource.innerHTML = '';
-      if (richTarget) richTarget.innerHTML = '';
-    });
   });
 
   test('should perform basic copy/paste operations', async ({ page }): Promise<void> => {
     const clipboard = new PlaywrightClipboard(page);
     const initialText = 'Hello World';
+
+    // Set initial text in source
     await page.fill('#source', initialText);
+    expect(await page.inputValue('#source')).toBe(initialText);
+
     await clipboard.copy('#source');
     await clipboard.paste('#target');
 
@@ -32,10 +39,6 @@ test.describe('PlaywrightClipboard', () => {
     const clipboard = new PlaywrightClipboard(page);
     const initialText = 'Test Content';
 
-    // Clear source and target first
-    await page.fill('#source', '');
-    await page.fill('#target', '');
-    // Then set test content
     await page.fill('#source', initialText);
     await clipboard.cut('#source');
     await clipboard.paste('#target');
@@ -63,7 +66,6 @@ test.describe('PlaywrightClipboard', () => {
 
     await page.fill('#editor', testText);
     await clipboard.copyBetweenWords('#editor', 2, 3); // Copy "brown fox"
-    await page.fill('#target', ''); // Clear target first
     await clipboard.paste('#target');
 
     const targetContent = await page.inputValue('#target');
@@ -74,15 +76,6 @@ test.describe('PlaywrightClipboard', () => {
     const clipboard = new PlaywrightClipboard(page);
     const richText = 'This is <b>bold</b> text';
 
-    // Clear both source and target
-    await page.evaluate(() => {
-      const source = document.querySelector('#richSource');
-      const target = document.querySelector('#richTarget');
-      if (source) source.innerHTML = '';
-      if (target) target.innerHTML = '';
-    });
-
-    // Set test content
     await page.evaluate(text => {
       const editor = document.querySelector('#richSource') as HTMLElement;
       editor.innerHTML = text;
@@ -91,12 +84,24 @@ test.describe('PlaywrightClipboard', () => {
     await clipboard.copyRichText('#richSource');
     await clipboard.pasteRichText('#richTarget');
 
+    const result = await page.evaluate(() => {
+      const target = document.querySelector('#richTarget') as HTMLElement;
+      return target.innerHTML.trim();
+    });
+
     if (browserName === 'webkit') {
-      const plainText = await page.$eval('#richTarget', el => el.textContent?.trim() || '');
-      expect(plainText).toBe('This is bold text');
+      const plainText = await page.evaluate(() => {
+        const target = document.querySelector('#richTarget') as HTMLElement;
+        return target.textContent?.trim() || '';
+      });
+      const normalizedExpected = 'This is bold text';
+      const normalizedActual = plainText.replace(/\s+/g, ' ').trim();
+      expect(normalizedActual).toBe(normalizedExpected);
     } else {
-      const html = await page.$eval('#richTarget', el => el.innerHTML.trim());
-      expect(html).toContain('<b>bold</b>');
+      // Chromium should preserve the HTML structure
+      const normalizedExpected = richText.replace(/\s+/g, ' ').trim();
+      const normalizedResult = normalizeHtml(result);
+      expect(normalizedResult).toBe(normalizedExpected);
     }
   });
 
@@ -124,11 +129,19 @@ test.describe('PlaywrightClipboard', () => {
     const clipboard = new PlaywrightClipboard(page);
     const testText = 'Line 1\nLine 2\nLine 3';
 
-    await page.fill('#editor', testText);
+    // Use textarea for multiline text
+    await page.evaluate(text => {
+      const textarea = document.querySelector('#editor') as HTMLTextAreaElement;
+      textarea.value = text;
+    }, testText);
+
     await clipboard.copy('#editor');
     await clipboard.paste('#target');
 
-    const result = await page.inputValue('#target');
+    const result = await page.evaluate(() => {
+      const target = document.querySelector('#target') as HTMLInputElement;
+      return target.value;
+    });
     expect(result).toBe(testText);
   });
 });

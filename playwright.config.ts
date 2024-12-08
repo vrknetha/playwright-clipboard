@@ -4,9 +4,7 @@ export default defineConfig({
   testDir: './tests',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: 1,
-  reporter: 'html',
+  reporter: 'list',
   timeout: 120000,
   expect: {
     timeout: 30000,
@@ -16,7 +14,7 @@ export default defineConfig({
     trace: 'on-first-retry',
     actionTimeout: 30000,
     navigationTimeout: 30000,
-    headless: true
+    headless: true,
   },
   webServer: {
     command: 'npm run serve',
@@ -31,25 +29,36 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 720 },
         permissions: ['clipboard-read', 'clipboard-write'],
-        viewport: { width: 1280, height: 720 }
       },
     },
     {
       name: 'firefox',
       use: {
         ...devices['Desktop Firefox'],
-        permissions: ['clipboard-read', 'clipboard-write'],
-        viewport: { width: 1280, height: 720 }
+        viewport: { width: 1280, height: 720 },
+        launchOptions: {
+          firefoxUserPrefs: {
+            'dom.events.testing.asyncClipboard': true,
+            'dom.events.asyncClipboard.readText': true,
+            'dom.events.asyncClipboard.clipboardItem': true,
+            'dom.events.asyncClipboard.writeText': true,
+            'permissions.default.clipboard-read': 1,
+            'permissions.default.clipboard-write': 1,
+          },
+        },
       },
     },
     {
       name: 'webkit',
       use: {
         ...devices['Desktop Safari'],
-        permissions: ['clipboard-read', 'clipboard-write'],
-        viewport: { width: 1280, height: 720 }
+        viewport: { width: 1280, height: 720 },
+        launchOptions: {
+          args: ['--enable-clipboard-read', '--enable-clipboard-write'],
+        },
       },
-    }
+    },
   ],
-}); 
+});
