@@ -2,14 +2,21 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   reporter: 'html',
+  timeout: 120000,
+  expect: {
+    timeout: 30000,
+  },
   use: {
     baseURL: 'http://localhost:8080',
     trace: 'on-first-retry',
+    actionTimeout: 30000,
+    navigationTimeout: 30000,
+    headless: true
   },
   webServer: {
     command: 'npm run serve',
@@ -25,15 +32,24 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         permissions: ['clipboard-read', 'clipboard-write'],
+        viewport: { width: 1280, height: 720 }
       },
     },
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      use: {
+        ...devices['Desktop Firefox'],
+        permissions: ['clipboard-read', 'clipboard-write'],
+        viewport: { width: 1280, height: 720 }
+      },
     },
     {
       name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+      use: {
+        ...devices['Desktop Safari'],
+        permissions: ['clipboard-read', 'clipboard-write'],
+        viewport: { width: 1280, height: 720 }
+      },
+    }
   ],
 }); 
