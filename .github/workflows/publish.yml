@@ -8,8 +8,10 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.49.0-jammy
+      image: mcr.microsoft.com/playwright:v1.40.1-jammy
       options: --ipc=host
+    env:
+      HOME: /root
     permissions:
       contents: read
       packages: write
